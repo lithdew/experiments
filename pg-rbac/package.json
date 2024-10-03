@@ -1,0 +1,14 @@
+{
+  "name": "pg-rbac",
+  "module": "index.ts",
+  "type": "module",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.2.10"
+  }
+}
