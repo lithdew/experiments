@@ -69,6 +69,25 @@ where exists(
     and p.descendant_id = deleted_role.parent_id and c.ancestor_id = deleted_role.id
 );`;
 
+const updateRoleParent = async (input: {
+  roleId: string;
+  parentId: string;
+}) => pg.sql`with updated_role as (
+    update roles set parent_id = (select id from roles where uuid = ${input.parentId}) where uuid = ${input.roleId}
+    returning roles.*
+),
+deleted_closure as (
+    delete from roles_closure using updated_role where
+    descendant_id in (select descendant_id from roles_closure where ancestor_id = updated_role.id) and
+    ancestor_id in (select ancestor_id from roles_closure where descendant_id = updated_role.id and ancestor_id <> descendant_id)
+    returning roles_closure.*
+)
+insert into roles_closure (ancestor_id, descendant_id)
+select p.ancestor_id, c.descendant_id from updated_role r,
+(select * from roles_closure except select * from deleted_closure) p,
+(select * from roles_closure except select * from deleted_closure) c
+where p.descendant_id = r.parent_id and c.ancestor_id = r.id;`;
+
 const createPermission = (input: {
   collection: string;
   action: "create" | "read" | "update" | "delete";
@@ -96,6 +115,9 @@ const user = await createRole({ parentId: anon, name: "user" });
 const mod = await createRole({ parentId: user, name: "mod" });
 const admin = await createRole({ parentId: mod, name: "admin" });
 
+await updateRoleParent({ roleId: admin!, parentId: user! });
+await updateRoleParent({ roleId: admin!, parentId: mod! });
+
 await deleteRole({ roleId: admin! });
 await deleteRole({ roleId: mod! });
 await deleteRole({ roleId: user! });
@@ -104,4 +126,3 @@ await deleteRole({ roleId: anon! });
 console.dir(await pg.sql`select * from roles_closure`.then((o) => o.rows), {
   depth: Infinity,
 });
-
