@@ -61,7 +61,7 @@ FROM generate_series(1, 100000) AS seq;
 
 -- Insert message recipients for each message using round-robin distribution
 INSERT INTO message_recipients (message_id, to_id)
-SELECT m.id, (((m.id + 5) % 10) + 1)::bigint
+SELECT m.id, (m.from_id % 10) + 1
 FROM messages m;
 
 end $$;`;
