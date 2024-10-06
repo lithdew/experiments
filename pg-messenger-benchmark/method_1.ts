@@ -74,12 +74,6 @@ create table if not exists message_recipients (
     unique(message_id, to_id) 
 );
 
-create index on chats(from_id);
-create index on chats(to_id);
-create index on messages(from_id);
-create index on messages(sent_at);
-create index on message_recipients(message_id);
-create index on message_recipients(to_id);
 
 -- Insert 10 accounts
 INSERT INTO accounts (uuid)
@@ -105,12 +99,19 @@ INSERT INTO message_recipients (message_id, to_id)
 SELECT m.id, (m.from_id % 10) + 1
 FROM messages m;
 
+create index on chats(from_id);
+create index on chats(to_id);
+create index on messages(from_id);
+create index on messages(sent_at);
+create index on message_recipients(message_id);
+create index on message_recipients(to_id);
+
 end $$;`;
 
 const explain = await pg.sql<{
   "QUERY PLAN": string;
-}>`explain (analyze, buffers)
-select * from messages m join message_recipients r on r.message_id = m.id
+}>`explain (analyze, buffers, verbose, settings)
+select m.* from messages m join message_recipients r on r.message_id = m.id
 where (${3}, ${4}) in (
     (m.from_id, r.to_id),
     (r.to_id, m.from_id)

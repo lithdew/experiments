@@ -69,11 +69,6 @@ create table if not exists chat_messages (
     unique(chat_id, message_id) 
 );
 
-create index on chats(from_id, to_id);
-create index on chats(to_id, from_id);
-create index on messages(sent_at DESC);
-create index on chat_messages(chat_id);
-create index on chat_messages(message_id);
 
 -- Insert 10 accounts
 INSERT INTO accounts (uuid)
@@ -99,17 +94,18 @@ SELECT c.id, m.id
 FROM chats c, messages m
 WHERE c.id = (m.id % 20) + 1;
 
+create index on messages(sent_at DESC, id);
+
 end $$;`;
 
 // await pg.sql`SET enable_nestloop = off;`;
 
 const explain = await pg.sql<{
   "QUERY PLAN": string;
-}>`explain (analyze, buffers)
-select * from messages m
+}>`explain (analyze, buffers, verbose, settings)
+select m.* from messages m
 join chat_messages cm on cm.message_id = m.id
-join chats c on c.id = cm.chat_id
-where (${3}, ${4}) in (
+join chats c on c.id = cm.chat_id and (${3}, ${4}) in (
     (c.from_id, c.to_id),
     (c.to_id, c.from_id)
 )
