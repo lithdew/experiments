@@ -108,6 +108,7 @@ create index on message_recipients(to_id);
 
 end $$;`;
 
+console.time("query");
 const explain = await pg.sql<{
   "QUERY PLAN": string;
 }>`explain (analyze, buffers, verbose, settings)
@@ -118,5 +119,6 @@ where (${3}, ${4}) in (
 )
 order by m.sent_at desc
 limit 1;`;
+console.timeEnd("query");
 
 console.log(explain.rows.map((r) => r["QUERY PLAN"]).join("\n"));
