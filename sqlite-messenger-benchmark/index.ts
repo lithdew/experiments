@@ -32,26 +32,21 @@ await db.execute(`create table if not exists message_recipients (
     unique(message_id, to_id) 
 );`);
 
-for (let i = 0; i < 100; i++) {
+for (let i = 1; i <= 10; i++) {
   await db.execute({
-    sql: `INSERT INTO accounts (id) VALUES ($1);`,
+    sql: `INSERT INTO accounts(id) VALUES ($1);`,
     args: [i],
   });
 }
 
-for (let i = 0; i < 100; i++) {
-  await db.execute({
-    sql: `INSERT INTO chats (from_id, to_id) VALUES ($1, $2) ON CONFLICT (from_id, to_id) DO NOTHING;`,
-    args: [i % 10, (i % 10) + 1],
-  });
+await db.execute(
+  `INSERT INTO chats (from_id, to_id) SELECT a.id, (a.id % 10) + 1 FROM accounts a`
+);
+await db.execute(
+  `INSERT INTO chats (from_id, to_id) SELECT (a.id % 10) + 1, a.id FROM accounts a`
+);
 
-  await db.execute({
-    sql: `INSERT INTO chats (from_id, to_id) VALUES ($1, $2) ON CONFLICT (from_id, to_id) DO NOTHING;`,
-    args: [(i % 10) + 1, i % 10],
-  });
-}
-
-for (let i = 0; i < 100000; i++) {
+for (let i = 1; i <= 100_000; i++) {
   await db.execute({
     sql: `INSERT INTO messages (from_id, content) VALUES ($1, $1);`,
     args: [(i % 10) + 1],
@@ -89,5 +84,4 @@ limit 1;`,
 });
 console.timeEnd("query");
 
-console.log(explain.rows.map((r) => r.detail).join("\n"));
 console.log(explain.toJSON());
